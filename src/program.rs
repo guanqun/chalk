@@ -80,8 +80,6 @@ impl tls::DebugContext for Program {
     ) -> Result<(), fmt::Error> {
         if let Some(k) = self.type_kinds.get(&type_kind_id) {
             write!(fmt, "{}", k.name)
-        } else if let Some(k) = self.type_kinds.get(&type_kind_id) {
-            write!(fmt, "{}", k.name)
         } else if let TypeKindId::TypeId(type_id) = type_kind_id {
             if let Some(k) = self.associated_ty_data.get(&type_id) {
                 write!(fmt, "({:?}::{})", k.trait_id, k.name)
