@@ -78,6 +78,10 @@ macro_rules! info_heading {
     }
 }
 
+pub fn reset_debug_level() {
+    lazy_static::initialize(&DEBUG_ENABLED);
+}
+
 pub fn dump(string: &str, suffix: &str) {
     let indent = INDENT.with(|i| i.borrow().len());
     let mut first = true;
