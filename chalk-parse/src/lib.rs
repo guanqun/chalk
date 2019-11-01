@@ -23,7 +23,7 @@ pub fn parse_program(text: &str) -> Result<ast::Program> {
 pub fn parse_ty(text: &str) -> Result<ast::Ty> {
     match parser::TyParser::new().parse(text) {
         Ok(v) => Ok(v),
-        Err(e) => Err(format!("error parsing `{}`: {:?}", text, e))?,
+        Err(e) => Err(format!("parse error `{}`: {:?}", text, e))?,
     }
 }
 
