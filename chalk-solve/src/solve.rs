@@ -144,7 +144,7 @@ impl Solver {
     /// - `f` -- function to proceed solution. New solutions will be generated
     /// while function returns `true`.
     ///   - first argument is solution found
-    ///   - second argument is ther next solution present
+    ///   - second argument is the next solution present
     ///   - returns true if next solution should be handled
     ///
     /// # Returns
