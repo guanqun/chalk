@@ -85,7 +85,7 @@ fn coherence(
         .collect();
     let priorities_map = priorities_map?;
 
-    let () = db.orphan_check()?;
+    db.orphan_check()?;
 
     Ok(priorities_map)
 }
@@ -95,7 +95,7 @@ fn checked_program(db: &impl LoweringDatabase) -> Result<Arc<Program>, ChalkErro
 
     db.coherence()?;
 
-    let () = tls::set_current_program(&program, || -> Result<(), ChalkError> {
+    tls::set_current_program(&program, || -> Result<(), ChalkError> {
         let solver = wf::WfSolver::new(db, db.solver_choice());
 
         for &id in program.struct_data.keys() {

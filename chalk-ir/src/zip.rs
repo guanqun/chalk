@@ -278,9 +278,7 @@ impl<TF: TypeFamily> Zip<TF> for Goal<TF> {
             | (&Goal::And(..), _)
             | (&Goal::Not(..), _)
             | (&Goal::Leaf(..), _)
-            | (&Goal::CannotProve(..), _) => {
-                return Err(NoSolution);
-            }
+            | (&Goal::CannotProve(..), _) => Err(NoSolution),
         }
     }
 }

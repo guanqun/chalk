@@ -250,7 +250,7 @@ fn program_clauses_that_could_match<TF: TypeFamily>(
             match_ty(builder, environment, ty)
         }
         DomainGoal::FromEnv(_) => (), // Computed in the environment
-        DomainGoal::Normalize(Normalize { projection, ty: _ }) => {
+        DomainGoal::Normalize(Normalize { projection, .. }) => {
             // Normalize goals derive from `AssociatedTyValue` datums,
             // which are found in impls. That is, if we are
             // normalizing (e.g.) `<T as Iterator>::Item>`, then

@@ -15,7 +15,7 @@ use rustyline::error::ReadlineError;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 chalk repl
 
 Usage:
@@ -182,7 +182,7 @@ where
             Err(ReadlineError::Eof) => break,
 
             // Some other error occurred.
-            Err(e) => Err(e)?,
+            Err(e) => return Err(e.into()),
         }
     }
 

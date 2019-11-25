@@ -423,7 +423,7 @@ impl<C: Context> Forest<C> {
 
             // If no subgoal has yet been selected, select one.
             while strand.selected_subgoal.is_none() {
-                if strand.ex_clause.subgoals.len() == 0 {
+                if strand.ex_clause.subgoals.is_empty() {
                     if strand.ex_clause.floundered_subgoals.is_empty() {
                         return self.pursue_answer(depth, strand);
                     }
@@ -467,10 +467,9 @@ impl<C: Context> Forest<C> {
 
             // Find the selected subgoal and ask it for the next answer.
             let SelectedSubgoal {
-                subgoal_index: _,
                 subgoal_table,
                 answer_index,
-                universe_map: _,
+                ..
             } = *strand.selected_subgoal.as_ref().unwrap();
             let recursive_search_result =
                 self.ensure_answer_recursively(context, subgoal_table, answer_index);
@@ -532,10 +531,10 @@ impl<C: Context> Forest<C> {
                     constraints,
                     ambiguous,
                     subgoals,
-                    current_time: _,
                     floundered_subgoals,
+                    ..
                 },
-            selected_subgoal: _,
+            ..
         } = strand;
         assert!(subgoals.is_empty());
         assert!(floundered_subgoals.is_empty());
@@ -545,7 +544,7 @@ impl<C: Context> Forest<C> {
 
         let answer = Answer {
             subst: answer_subst,
-            ambiguous: ambiguous,
+            ambiguous,
         };
 
         // A "trivial" answer is one that is 'just true for all cases'
@@ -1001,9 +1000,7 @@ impl<C: Context> Forest<C> {
                 ) {
                     Ok(()) => {
                         let Strand {
-                            infer,
-                            ex_clause,
-                            selected_subgoal: _,
+                            infer, ex_clause, ..
                         } = strand;
 
                         // If the answer had delayed literals, we have to
@@ -1024,7 +1021,7 @@ impl<C: Context> Forest<C> {
                         self.truncate_returned(ex_clause, infer);
 
                         strand.selected_subgoal = None;
-                        return Ok(());
+                        Ok(())
                     }
 
                     // This answer led nowhere. Give up for now, but of course
@@ -1049,11 +1046,11 @@ impl<C: Context> Forest<C> {
                 );
                 strand.ex_clause.subgoals.remove(subgoal_index);
                 strand.selected_subgoal = None;
-                return Ok(());
+                Ok(())
             }
             Err(RecursiveSearchFail::NoMoreSolutions) => {
                 info!("incorporate_result_from_positive_subgoal: no more solutions");
-                return Err(RecursiveSearchFail::NoMoreSolutions);
+                Err(RecursiveSearchFail::NoMoreSolutions)
             }
             Err(RecursiveSearchFail::Floundered) => {
                 // If this subgoal floundered, push it onto the
@@ -1063,23 +1060,23 @@ impl<C: Context> Forest<C> {
                 info!("incorporate_result_from_positive_subgoal: floundered");
                 self.flounder_subgoal(&mut strand.ex_clause, subgoal_index);
                 strand.selected_subgoal = None;
-                return Err(RecursiveSearchFail::QuantumExceeded);
+                Err(RecursiveSearchFail::QuantumExceeded)
             }
             Err(RecursiveSearchFail::QuantumExceeded) => {
                 // We'll have to revisit this strand later
                 info!("incorporate_result_from_positive_subgoal: quantum exceeded");
-                return Err(RecursiveSearchFail::QuantumExceeded);
+                Err(RecursiveSearchFail::QuantumExceeded)
             }
             Err(RecursiveSearchFail::NegativeCycle) => {
                 info!("negative cycle detected");
-                return Err(RecursiveSearchFail::NegativeCycle);
+                Err(RecursiveSearchFail::NegativeCycle)
             }
             Err(RecursiveSearchFail::PositiveCycle(minimums)) => {
                 info!(
                     "incorporate_result_from_positive_subgoal: cycle with minimums {:?}",
                     minimums
                 );
-                return Err(RecursiveSearchFail::PositiveCycle(minimums));
+                Err(RecursiveSearchFail::PositiveCycle(minimums))
             }
         }
     }
@@ -1092,10 +1089,9 @@ impl<C: Context> Forest<C> {
     ) -> RecursiveSearchResult<()> {
         let selected_subgoal = strand.selected_subgoal.as_ref().unwrap();
         let SelectedSubgoal {
-            subgoal_index: _,
             subgoal_table,
             answer_index,
-            universe_map: _,
+            ..
         } = *selected_subgoal;
 
         // In the match below, we will either (a) return early with an
@@ -1137,7 +1133,7 @@ impl<C: Context> Forest<C> {
                     .remove(selected_subgoal.subgoal_index);
                 strand.selected_subgoal = None;
                 strand.ex_clause.ambiguous = true;
-                return Ok(());
+                Ok(())
             }
 
             Ok(EnsureSuccess::Coinductive) => {
@@ -1147,7 +1143,7 @@ impl<C: Context> Forest<C> {
                 // means that our subgoal is unconditionally true, so
                 // our negative goal fails.
                 info!("incorporate_result_from_negative_subgoal: found coinductive answer to neg literal -> NoSolution");
-                return Err(RecursiveSearchFail::NoMoreSolutions);
+                Err(RecursiveSearchFail::NoMoreSolutions)
             }
 
             Err(RecursiveSearchFail::Floundered) => {
@@ -1166,12 +1162,10 @@ impl<C: Context> Forest<C> {
                 //
                 // Here, the table we will be searching for answers is
                 // `?T: Debug`, so it could well flounder.
-                return Err(RecursiveSearchFail::Floundered);
+                Err(RecursiveSearchFail::Floundered)
             }
 
-            Err(RecursiveSearchFail::NegativeCycle) => {
-                return Err(RecursiveSearchFail::NegativeCycle);
-            }
+            Err(RecursiveSearchFail::NegativeCycle) => Err(RecursiveSearchFail::NegativeCycle),
 
             Err(RecursiveSearchFail::PositiveCycle(minimums)) => {
                 // We depend on `not(subgoal)`. For us to continue,
@@ -1184,10 +1178,10 @@ impl<C: Context> Forest<C> {
                     "incorporate_result_from_negative_subgoal: found neg cycle at depth {:?}",
                     min
                 );
-                return Err(RecursiveSearchFail::PositiveCycle(Minimums {
+                Err(RecursiveSearchFail::PositiveCycle(Minimums {
                     positive: self.stack[depth].dfn,
                     negative: min,
-                }));
+                }))
             }
 
             Err(RecursiveSearchFail::NoMoreSolutions) => {
@@ -1199,13 +1193,13 @@ impl<C: Context> Forest<C> {
                     .subgoals
                     .remove(selected_subgoal.subgoal_index);
                 strand.selected_subgoal = None;
-                return Ok(());
+                Ok(())
             }
 
             // Learned nothing yet. Have to try again some other time.
             Err(RecursiveSearchFail::QuantumExceeded) => {
                 info!("incorporate_result_from_negative_subgoal: quantum exceeded");
-                return Err(RecursiveSearchFail::QuantumExceeded);
+                Err(RecursiveSearchFail::QuantumExceeded)
             }
         }
     }

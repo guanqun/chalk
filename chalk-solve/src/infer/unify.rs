@@ -56,8 +56,8 @@ pub(crate) struct UnificationResult<TF: TypeFamily> {
 impl<'t, TF: TypeFamily> Unifier<'t, TF> {
     fn new(table: &'t mut InferenceTable<TF>, environment: &'t Environment<TF>) -> Self {
         Unifier {
-            environment: environment,
-            table: table,
+            environment,
+            table,
             goals: vec![],
             constraints: vec![],
         }
@@ -159,17 +159,17 @@ impl<'t, TF: TypeFamily> Unifier<'t, TF> {
 
             // Cannot unify (e.g.) some struct type `Foo` and an `impl Trait` type
             (&TyData::Apply(_), &TyData::Opaque(_)) | (&TyData::Opaque(_), &TyData::Apply(_)) => {
-                return Err(NoSolution);
+                Err(NoSolution)
             }
 
             // Cannot unify (e.g.) some struct type `Foo` and a `dyn Trait` type
             (&TyData::Apply(_), &TyData::Dyn(_)) | (&TyData::Dyn(_), &TyData::Apply(_)) => {
-                return Err(NoSolution);
+                Err(NoSolution)
             }
 
             // Cannot unify (e.g.) some `dyn Trait` and some `impl Trait` type
             (&TyData::Dyn(..), &TyData::Opaque(..)) | (&TyData::Opaque(..), &TyData::Dyn(..)) => {
-                return Err(NoSolution);
+                Err(NoSolution)
             }
 
             (&TyData::Opaque(ref qwc1), &TyData::Opaque(ref qwc2))

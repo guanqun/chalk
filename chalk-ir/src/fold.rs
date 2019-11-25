@@ -506,7 +506,7 @@ where
         let value = self_value.fold_with(folder, binders + self_binders.len())?;
         Ok(Binders {
             binders: self_binders.clone(),
-            value: value,
+            value,
         })
     }
 }
@@ -530,7 +530,7 @@ where
         let value = self_value.fold_with(folder, binders + self_binders.len())?;
         Ok(Canonical {
             binders: self_binders.clone(),
-            value: value,
+            value,
         })
     }
 }

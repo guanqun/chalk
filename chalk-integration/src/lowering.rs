@@ -109,7 +109,7 @@ impl<'k> Env<'k> {
             .chain(binders)
             .collect();
         if parameter_map.len() != self.parameter_map.len() + len {
-            Err(RustIrError::DuplicateOrShadowedParameters)?;
+            return Err(RustIrError::DuplicateOrShadowedParameters);
         }
         Ok(Env {
             parameter_map,
@@ -157,7 +157,7 @@ impl LowerProgram for Program {
             match item {
                 Item::TraitDefn(d) => {
                     if d.flags.auto && !d.assoc_ty_defns.is_empty() {
-                        Err(RustIrError::AutoTraitAssociatedTypes(d.name))?;
+                        return Err(RustIrError::AutoTraitAssociatedTypes(d.name));
                     }
                     for defn in &d.assoc_ty_defns {
                         let addl_parameter_kinds = defn.all_parameters();
@@ -258,7 +258,7 @@ impl LowerProgram for Program {
                                 trait_id: TraitId(raw_id),
                                 id: lookup.id,
                                 name: assoc_ty_defn.name.str,
-                                binders: binders,
+                                binders,
                             }),
                         );
                     }
@@ -635,7 +635,7 @@ impl LowerStructDefn for StructDefn {
         env: &Env,
     ) -> LowerResult<rust_ir::StructDatum<ChalkIr>> {
         if self.flags.fundamental && self.all_parameters().len() != 1 {
-            Err(RustIrError::InvalidFundamentalTypesParameters(self.name))?;
+            return Err(RustIrError::InvalidFundamentalTypesParameters(self.name));
         }
 
         let binders = env.in_binders(self.all_parameters(), |env| {
@@ -687,13 +687,13 @@ impl LowerTraitBound for TraitBound {
         let trait_id = match env.lookup(self.trait_name)? {
             NameLookup::Type(TypeKindId::TraitId(trait_id)) => trait_id,
             NameLookup::Type(_) | NameLookup::Parameter(_) => {
-                Err(RustIrError::NotTrait(self.trait_name))?
+                return Err(RustIrError::NotTrait(self.trait_name));
             }
         };
 
         let k = env.type_kind(trait_id.into());
         if k.sort != rust_ir::TypeSort::Trait {
-            Err(RustIrError::NotTrait(self.trait_name))?;
+            return Err(RustIrError::NotTrait(self.trait_name));
         }
 
         let parameters = self
@@ -703,20 +703,20 @@ impl LowerTraitBound for TraitBound {
             .collect::<LowerResult<Vec<_>>>()?;
 
         if parameters.len() != k.binders.len() {
-            Err(RustIrError::IncorrectNumberOfTypeParameters {
+            return Err(RustIrError::IncorrectNumberOfTypeParameters {
                 identifier: self.trait_name,
                 expected: k.binders.len(),
                 actual: parameters.len(),
-            })?;
+            });
         }
 
         for (binder, param) in k.binders.binders.iter().zip(parameters.iter()) {
             if binder.kind() != param.kind() {
-                Err(RustIrError::IncorrectTraitParameterKind {
+                return Err(RustIrError::IncorrectTraitParameterKind {
                     identifier: self.trait_name,
                     expected: binder.kind(),
                     actual: param.kind(),
-                })?;
+                });
             }
         }
 
@@ -739,7 +739,7 @@ impl LowerProjectionEqBound for ProjectionEqBound {
             .get(&(trait_bound.trait_id, self.name.str))
         {
             Some(lookup) => lookup,
-            None => Err(RustIrError::MissingAssociatedType(self.name))?,
+            None => return Err(RustIrError::MissingAssociatedType(self.name)),
         };
         let args: Vec<_> = self
             .args
@@ -748,20 +748,20 @@ impl LowerProjectionEqBound for ProjectionEqBound {
             .collect::<LowerResult<_>>()?;
 
         if args.len() != lookup.addl_parameter_kinds.len() {
-            Err(RustIrError::IncorrectNumberOfAssociatedTypeParameters {
+            return Err(RustIrError::IncorrectNumberOfAssociatedTypeParameters {
                 identifier: self.name,
                 expected: lookup.addl_parameter_kinds.len(),
                 actual: args.len(),
-            })?;
+            });
         }
 
         for (param, arg) in lookup.addl_parameter_kinds.iter().zip(args.iter()) {
             if param.kind() != arg.kind() {
-                Err(RustIrError::IncorrectAssociatedTypeParameterKind {
+                return Err(RustIrError::IncorrectAssociatedTypeParameterKind {
                     identifier: self.name,
                     expected: param.kind(),
                     actual: arg.kind(),
-                })?;
+                });
             }
         }
 
@@ -870,9 +870,9 @@ impl LowerProjectionTy for ProjectionTy {
             trait_id,
             parameters: trait_parameters,
         } = trait_ref.lower(env)?;
-        let lookup = match env.associated_ty_lookups.get(&(trait_id.into(), name.str)) {
+        let lookup = match env.associated_ty_lookups.get(&(trait_id, name.str)) {
             Some(lookup) => lookup,
-            None => Err(RustIrError::MissingAssociatedType(self.name))?,
+            None => return Err(RustIrError::MissingAssociatedType(self.name)),
         };
         let mut args: Vec<_> = args
             .iter()
@@ -880,20 +880,20 @@ impl LowerProjectionTy for ProjectionTy {
             .collect::<LowerResult<_>>()?;
 
         if args.len() != lookup.addl_parameter_kinds.len() {
-            Err(RustIrError::IncorrectNumberOfAssociatedTypeParameters {
+            return Err(RustIrError::IncorrectNumberOfAssociatedTypeParameters {
                 identifier: self.name,
                 expected: lookup.addl_parameter_kinds.len(),
                 actual: args.len(),
-            })?;
+            });
         }
 
         for (param, arg) in lookup.addl_parameter_kinds.iter().zip(args.iter()) {
             if param.kind() != arg.kind() {
-                Err(RustIrError::IncorrectAssociatedTypeParameterKind {
+                return Err(RustIrError::IncorrectAssociatedTypeParameterKind {
                     identifier: self.name,
                     expected: param.kind(),
                     actual: arg.kind(),
-                })?;
+                });
             }
         }
 
@@ -921,10 +921,10 @@ impl LowerTy for Ty {
                             identifier: name,
                             expected: k.binders.len(),
                             actual: 0,
-                        })?
+                        })
                     } else {
                         Ok(chalk_ir::TyData::Apply(chalk_ir::ApplicationTy {
-                            name: chalk_ir::TypeName::TypeKindId(id.into()),
+                            name: chalk_ir::TypeName::TypeKindId(id),
                             parameters: vec![],
                         })
                         .intern())
@@ -966,16 +966,18 @@ impl LowerTy for Ty {
             Ty::Apply { name, ref args } => {
                 let id = match env.lookup(name)? {
                     NameLookup::Type(id) => id,
-                    NameLookup::Parameter(_) => Err(RustIrError::CannotApplyTypeParameter(name))?,
+                    NameLookup::Parameter(_) => {
+                        return Err(RustIrError::CannotApplyTypeParameter(name))
+                    }
                 };
 
                 let k = env.type_kind(id);
                 if k.binders.len() != args.len() {
-                    Err(RustIrError::IncorrectNumberOfTypeParameters {
+                    return Err(RustIrError::IncorrectNumberOfTypeParameters {
                         identifier: name,
                         expected: k.binders.len(),
                         actual: args.len(),
-                    })?;
+                    });
                 }
 
                 let parameters = args
@@ -985,17 +987,17 @@ impl LowerTy for Ty {
 
                 for (param, arg) in k.binders.binders.iter().zip(args.iter()) {
                     if param.kind() != arg.kind() {
-                        Err(RustIrError::IncorrectParameterKind {
+                        return Err(RustIrError::IncorrectParameterKind {
                             identifier: name,
                             expected: param.kind(),
                             actual: arg.kind(),
-                        })?;
+                        });
                     }
                 }
 
                 Ok(chalk_ir::TyData::Apply(chalk_ir::ApplicationTy {
-                    name: chalk_ir::TypeName::TypeKindId(id.into()),
-                    parameters: parameters,
+                    name: chalk_ir::TypeName::TypeKindId(id),
+                    parameters,
                 })
                 .intern())
             }
@@ -1076,9 +1078,9 @@ impl LowerImpl for Impl {
             debug!("trait_ref = {:?}", trait_ref);
 
             if !polarity.is_positive() && !self.assoc_ty_values.is_empty() {
-                Err(RustIrError::NegativeImplAssociatedValues(
+                return Err(RustIrError::NegativeImplAssociatedValues(
                     self.trait_ref.trait_name,
-                ))?;
+                ));
             }
 
             let where_clauses = self.lower_where_clauses(&env)?;
@@ -1102,7 +1104,7 @@ impl LowerImpl for Impl {
 
         Ok(rust_ir::ImplDatum {
             polarity,
-            binders: binders,
+            binders,
             impl_type: self.impl_type.lower(),
             associated_ty_value_ids,
         })
@@ -1174,10 +1176,10 @@ impl LowerTrait for TraitDefn {
         let binders = env.in_binders(all_parameters, |env| {
             if self.flags.auto {
                 if all_parameters_len > 1 {
-                    Err(RustIrError::AutoTraitParameters(self.name))?;
+                    return Err(RustIrError::AutoTraitParameters(self.name));
                 }
                 if !self.where_clauses.is_empty() {
-                    Err(RustIrError::AutoTraitWhereClauses(self.name))?;
+                    return Err(RustIrError::AutoTraitWhereClauses(self.name));
                 }
             }
 
@@ -1194,7 +1196,7 @@ impl LowerTrait for TraitDefn {
 
         Ok(rust_ir::TraitDatum {
             id: trait_id,
-            binders: binders,
+            binders,
             flags: self.flags.lower(),
             associated_ty_ids,
         })
@@ -1245,7 +1247,7 @@ impl<'k> LowerGoal<Env<'k>> for Goal {
                 // in the assumptions of an `if` goal, e.g. `if (T: Trait) { ... }` lowers to
                 // `if (FromEnv(T: Trait)) { ... /* this part is untouched */ ... }`.
                 let where_clauses: LowerResult<Vec<_>> = hyp
-                    .into_iter()
+                    .iter()
                     .flat_map(|h| h.lower_clause(env).apply_result())
                     .map(|result| result.map(|h| h.into_from_env_clause()))
                     .collect();

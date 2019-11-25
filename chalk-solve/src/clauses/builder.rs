@@ -49,7 +49,7 @@ impl<'me, TF: TypeFamily> ClauseBuilder<'me, TF> {
             conditions: conditions.into_iter().casted().collect(),
         };
 
-        if self.binders.len() == 0 {
+        if self.binders.is_empty() {
             self.clauses.push(ProgramClause::Implies(clause));
         } else {
             self.clauses.push(ProgramClause::ForAll(Binders {

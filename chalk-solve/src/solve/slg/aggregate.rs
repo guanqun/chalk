@@ -84,11 +84,8 @@ fn merge_into_guidance<TF: TypeFamily>(
 ) -> Canonical<Substitution<TF>> {
     let mut infer = InferenceTable::new();
     let Canonical {
-        value: ConstrainedSubst {
-            subst: subst1,
-            constraints: _,
-        },
-        binders: _,
+        value: ConstrainedSubst { subst: subst1, .. },
+        ..
     } = answer;
 
     // Collect the types that the two substitutions have in

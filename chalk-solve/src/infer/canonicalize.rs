@@ -76,9 +76,7 @@ struct Canonicalizer<'q, TF: TypeFamily> {
 impl<'q, TF: TypeFamily> Canonicalizer<'q, TF> {
     fn into_binders(self) -> Vec<ParameterKind<UniverseIndex>> {
         let Canonicalizer {
-            table,
-            free_vars,
-            max_universe: _,
+            table, free_vars, ..
         } = self;
         free_vars
             .into_iter()
